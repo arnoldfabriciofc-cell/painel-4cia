@@ -51,6 +51,7 @@
        else iguais.push(k);
      }catch(e){erros.push("Lote linha "+(i+1)+": "+e.message)}
    });
+   if(novos.length===0)erros.push("Lote vazio: nenhuma alteração autorizável");
    return {modo:"SOMENTE SIMULAÇÃO",aprovado:erros.length===0,totais:{atuais:atuais.length,recebidos:novos.length,inserir:inserir.length,iguais:iguais.length,revisar:revisar.length,erros:erros.length},inserir,iguais,revisar,erros};
  }
  return {plano};
