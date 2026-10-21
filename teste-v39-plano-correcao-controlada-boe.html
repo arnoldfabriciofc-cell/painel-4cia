@@ -1,0 +1,73 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>V39 | Plano de correção controlada BO-e</title><style>
+*{box-sizing:border-box}body{margin:0;background:#080808;color:#eee;font:15px Arial,sans-serif}header{padding:24px max(20px,calc((100% - 1100px)/2));border-bottom:2px solid #ffd400}h1,h2{color:#ffd400}h1{font-size:24px}h2{font-size:19px}main{max-width:1100px;margin:24px auto;padding:0 16px}.card{background:#141414;border:1px solid #ae9300;border-radius:10px;padding:20px;margin:16px 0}.inputs{display:grid;grid-template-columns:1fr 1fr;gap:16px}label{display:block;font-weight:bold;margin-bottom:8px}input{width:100%;padding:12px;background:#070707;color:white;border:1px solid #aa9000;border-radius:6px}button{background:#ffd400;border:0;border-radius:7px;padding:13px 17px;font-weight:bold;cursor:pointer;margin:14px 8px 0 0}button:disabled{background:#555;color:#aaa}pre{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;background:#070707;border-left:3px solid #ffd400;padding:16px}.scroll{max-height:520px;overflow:auto}table{width:100%;border-collapse:collapse;font-size:12px}td,th{padding:10px;border-bottom:1px solid #333;text-align:left;white-space:nowrap}th{position:sticky;top:0;background:#252525;color:#ffd400}.note{color:#ccc;line-height:1.5}@media(max-width:680px){.inputs{grid-template-columns:1fr}}
+</style></head><body><header><h1>P3 • 4ª Cia — V39 | Plano de correção controlada</h1><p>Prévia local, sem conexão com Supabase, sem SQL executável e sem gravação.</p></header><main>
+<section class="card"><h2>1. Conferência final dos arquivos</h2><div class="inputs"><div><label>Backup COMPLETO do Supabase (.csv)</label><input id="backup" type="file" accept=".csv"></div><div><label>Relatório V38 (.json)</label><input id="report" type="file" accept=".json"></div></div>
+<button id="run">Simular correção e reversão (sem gravar)</button><button id="download" disabled>Baixar plano de alterações (.json)</button>
+<p class="note">O plano JSON é apenas um documento de conferência, não um comando para executar. Não publique o backup, o plano ou dados pessoais no GitHub. O painel oficial não será modificado.</p></section>
+<section class="card"><h2>2. Resultado</h2><pre id="result">Selecione os arquivos e inicie a simulação.</pre></section>
+<section class="card"><h2>3. Alterações propostas por BO-e</h2><div class="scroll"><table><thead><tr><th>BO-e</th><th>Data</th><th>Rodovia</th><th>Tipo</th><th>Vítimas L/G/F</th><th>Natureza</th></tr></thead><tbody id="rows"></tbody></table></div></section></main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id),str=v=>String(v??'').trim(),esc=v=>{let s=document.createElement('span');s.textContent=str(v);return s.innerHTML};
+let plan=null;
+function parseCSV(s){s=s.replace(/^\uFEFF/,'');let rows=[],row=[],f='',q=false;for(let i=0;i<s.length;i++){let c=s[i];if(q){if(c==='"'&&s[i+1]==='"'){f+='"';i++}else if(c==='"')q=false;else f+=c}else if(c==='"')q=true;else if(c===','){row.push(f);f=''}else if(c==='\n'){row.push(f.replace(/\r$/,''));rows.push(row);row=[];f=''}else f+=c}if(q)throw Error('CSV malformado');if(row.length||f){row.push(f);rows.push(row)}let h=rows.shift()||[];return rows.filter(r=>r.some(x=>str(x))).map(r=>Object.fromEntries(h.map((k,i)=>[str(k),r[i]??''])))}
+function date(v){return str(v).slice(0,10)}function time(v){return str(v).slice(0,5)}
+function integer(v){let n=Number(v);return Number.isSafeInteger(n)&&n>=0?n:null}
+function download(name,obj){let u=URL.createObjectURL(new Blob([JSON.stringify(obj,null,2)],{type:'application/json;charset=utf-8'}));let a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),3000)}
+$('download').onclick=()=>{if(plan)download('plano_v39_nao_executavel.json',plan)};
+$('run').onclick=async()=>{
+plan=null;$('download').disabled=true;$('rows').replaceChildren();$('result').textContent='Verificando...';
+try{
+if(!$('backup').files[0]||!$('report').files[0])throw Error('Selecione o backup completo e o relatório V38.');
+const [csv,json]=await Promise.all([$('backup').files[0].text(),$('report').files[0].text()]);
+const original=parseCSV(csv),report=JSON.parse(json),errors=[],alerts=[],proposals=[];
+const required=['id','chave_registro','boe','rso','data_sinistro','hora_sinistro','rodovia','tipo_sinistro','vitimas_leves','vitimas_graves','vitimas_fatais','ano','mes','dados_originais'];
+for(const k of required)if(!original.length||!(k in original[0]))errors.push('Backup incompleto: falta '+k);
+if(!report.aprovado_estrutural||report.erros?.length)errors.push('Relatório V38 não aprovado.');
+if(original.length!==35||report.registros?.length!==35)errors.push('São esperados 35 registros nos dois arquivos.');
+let map=new Map();for(const b of original){if(map.has(str(b.boe)))errors.push('BO-e repetido no backup '+b.boe);map.set(str(b.boe),b)}
+let used=new Set(),acc=0,others=0,dates=0,roads=0,types=0,lv=0,gr=0,fa=0;
+for(const p of report.registros||[]){
+let b=map.get(str(p.boe));if(!b){errors.push('BO-e não encontrado: '+p.boe);continue}
+if(used.has(str(p.boe)))errors.push('BO-e duplicado no relatório '+p.boe);used.add(str(p.boe));
+if(str(b.rso)!==str(p.rso))errors.push('RSO divergente '+p.boe);
+if(date(b.data_sinistro)!==date(p.data_atual))errors.push('Data atual diferente do backup '+p.boe);
+if(str(b.rodovia)!==str(p.rodovia_atual))errors.push('Rodovia atual diferente do backup '+p.boe);
+if(time(b.hora_sinistro)!==time(p.hora_preservada))errors.push('Hora atual diferente do relatório '+p.boe);
+if(p.erros?.length)errors.push('Registro com erro na V38 '+p.boe);
+if(!/^\d{4}-\d{2}-\d{2}$/.test(str(p.data_proposta)))errors.push('Data inválida '+p.boe);
+if(!/^SP-\d{3}$/.test(str(p.rodovia_proposta)))errors.push('Rodovia inválida '+p.boe);
+let isAcc=p.contabilizar_sinistralidade===true;
+if(isAcc){acc++;if(!p.tipo)errors.push('Acidente sem tipo '+p.boe)}else{others++;if(p.tipo)errors.push('Outra natureza com tipo '+p.boe)}
+if(date(b.data_sinistro)!==date(p.data_proposta))dates++;
+if(str(b.rodovia)!==str(p.rodovia_proposta))roads++;
+if(isAcc&&str(b.tipo_sinistro)!==str(p.tipo))types++;
+let nums=(p.vitimas||[]).map(integer);if(nums.length!==3||nums.some(n=>n===null))errors.push('Vítimas inválidas '+p.boe);
+if(!isAcc&&nums.some(n=>n!==0))errors.push('Vítimas em ocorrência não acidente '+p.boe);
+lv+=(nums[0]||0);gr+=(nums[1]||0);fa+=(nums[2]||0);
+let raw;try{raw=JSON.parse(b.dados_originais)}catch{errors.push('JSON original inválido '+p.boe);raw={}}
+if(str(p.boe)==='504195'&&str(p.rodovia_original)!=='270/350')errors.push('Identificação original 270/350 ausente no BO-e 504195');
+const before=structuredClone(b),after=structuredClone(b);
+after.data_sinistro=date(p.data_proposta);after.ano=Number(after.data_sinistro.slice(0,4));after.mes=Number(after.data_sinistro.slice(5,7));
+after.rodovia=p.rodovia_proposta;after.tipo_sinistro=isAcc?p.tipo:null;
+after.vitimas_leves=nums[0];after.vitimas_graves=nums[1];after.vitimas_fatais=nums[2];
+after.dados_originais=JSON.stringify({...raw,rodovia_original_excel:p.rodovia_original,natureza:p.natureza,contabilizar_sinistralidade:isAcc});
+if(str(before.boe)!==str(after.boe)||str(before.rso)!==str(after.rso)||time(before.hora_sinistro)!==time(after.hora_sinistro)||str(before.chave_registro)!==str(after.chave_registro)||str(before.id)!==str(after.id))errors.push('Campo protegido alterado '+p.boe);
+let reversed=structuredClone(before);if(JSON.stringify(reversed)!==JSON.stringify(before))errors.push('Reversão em memória falhou '+p.boe);
+proposals.push({boe:p.boe,rso:p.rso,antes:before,depois:after,acidente:isAcc,rodovia_original_excel:p.rodovia_original});
+}
+for(const k of map.keys())if(!used.has(k))errors.push('BO-e sem proposta '+k);
+if(acc!==23||others!==12||dates!==3||roads!==35||types!==23)errors.push('Quantitativos de alterações não conferem com V38');
+if(lv!==17||gr!==3||fa!==2)errors.push('Totais de vítimas divergentes');
+alerts.push('A reversão testada é apenas em memória; restauração real do banco não foi testada.');
+alerts.push('Confirmar interpretação da rodovia 270/350 (BO-e 504195) antes da gravação.');
+alerts.push('Filtro de natureza do painel público ainda precisa ser implementado e validado.');
+alerts.push('Atualização do banco deve usar transação, checagem de concorrência e rollback testado.');
+plan={versao:'V39',tipo:'PLANO DE CONFERENCIA NAO EXECUTAVEL',aprovado_estrutural:errors.length===0,autorizacao_para_gravar:false,quantitativos:{registros:proposals.length,acidentes:acc,outras_naturezas:others,datas:dates,rodovias:roads,tipos:types,vitimas:{leves:lv,graves:gr,fatais:fa}},erros:errors,alertas:alerts,propostas:proposals};
+$('result').textContent=(errors.length?'VALIDAÇÃO BLOQUEADA':'PLANO ESTRUTURALMENTE CONFERIDO')+'\n\nBO-e: '+proposals.length+'/35\nAcidentes: '+acc+' | Outras naturezas: '+others+'\nDatas: '+dates+' | Rodovias: '+roads+' | Tipos: '+types+'\nVítimas confirmadas L/G/F: '+lv+'/'+gr+'/'+fa+'\nCampos protegidos: BO-e, RSO, id, chave_registro, hora_sinistro\nERROS: '+errors.length+(errors.length?'\n- '+errors.join('\n- '):'')+'\n\nPENDÊNCIAS:\n- '+alerts.join('\n- ')+'\n\nNENHUM SQL EXECUTADO. NENHUMA GRAVAÇÃO. NÃO AUTORIZADO PARA EXECUÇÃO.';
+$('rows').innerHTML=proposals.map(p=>'<tr><td>'+esc(p.boe)+'</td><td>'+esc(p.antes.data_sinistro)+' → '+esc(p.depois.data_sinistro)+'</td><td>'+esc(p.antes.rodovia)+' → '+esc(p.depois.rodovia)+'</td><td>'+esc(p.depois.tipo_sinistro||'—')+'</td><td>'+[p.depois.vitimas_leves,p.depois.vitimas_graves,p.depois.vitimas_fatais].join('/')+'</td><td>'+esc(p.acidente?'Acidente':'Outra natureza')+'</td></tr>').join('');
+$('download').disabled=errors.length>0;
+}catch(e){$('result').textContent='ERRO: '+e.message+'\nNenhuma gravação realizada.'}
+};
+</script></body></html>
