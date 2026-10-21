@@ -1,0 +1,65 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>V38 | Consolidação BO-e — 4ª Cia</title><style>:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#090909;color:#eee;font:15px Arial,sans-serif}header{background:#050505;border-bottom:2px solid #ffd500;padding:22px max(18px,calc((100% - 1150px)/2))}h1{color:#ffd500;font-size:25px;margin:0 0 8px}h2{font-size:19px;color:#ffd500}main{max-width:1150px;margin:24px auto;padding:0 14px}.panel{background:#141414;border:1px solid #c7a600;border-radius:12px;padding:20px;margin-bottom:18px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}label{display:block;font-weight:bold;margin-bottom:8px}input[type=file]{width:100%;border:1px solid #887400;padding:12px;background:#080808;color:white;border-radius:7px}button{background:#ffd500;color:#101010;border:0;padding:13px 19px;border-radius:8px;font-weight:700;cursor:pointer;margin:12px 10px 0 0}button:disabled{background:#555;color:#ccc;cursor:not-allowed}.note{color:#bcbcbc;line-height:1.55}.status{white-space:pre-wrap;background:#080808;border-left:3px solid #ffd500;padding:16px;font:14px/1.7 Consolas,monospace;overflow:auto}.scroll{overflow:auto;max-height:540px}table{border-collapse:collapse;width:100%;font-size:12px}th,td{border-bottom:1px solid #333;text-align:left;padding:9px;white-space:nowrap}th{position:sticky;top:0;background:#292929;color:#ffd500}.warn{color:#ffd500}.bad{color:#ff9b9b}.ok{color:#a7e9ac}small{color:#aaa}</style></head><body><header><h1>P3 • 4ª Cia — V38 | Consolidação Final BO-e</h1><div>Auditoria local e preparação de relatório • Sem conexão com Supabase • Sem SQL • Nenhuma gravação</div></header><main><section class="panel"><h2>1. Selecione os três arquivos já conferidos</h2><div class="grid"><div><label>Backup completo do Supabase (.csv)</label><input id="csv" type="file" accept=".csv,text/csv"></div><div><label>Prévia da V34 (.json)</label><input id="v34" type="file" accept=".json,application/json"></div><div><label>Auditoria da V37 (.json)</label><input id="v37" type="file" accept=".json,application/json"></div></div><button id="run">Consolidar e verificar (sem gravar)</button><button id="download" disabled>Baixar relatório V38 (.json)</button><p class="note">Este arquivo não altera os registros. A aprovação estrutural não autoriza publicar indicadores de vítimas nem executar atualização. Guarde o backup completo fora do repositório público.</p></section><section class="panel"><h2>2. Resultado</h2><div id="result" class="status">Selecione os três arquivos e clique em Consolidar.</div></section><section class="panel"><h2>3. Conferência individual</h2><div class="scroll"><table><thead><tr><th>BO-e</th><th>RSO</th><th>Data atual → proposta</th><th>Rodovia atual → proposta</th><th>Natureza</th><th>Tipo</th><th>Vítimas L/G/F</th><th>Validação</th></tr></thead><tbody id="rows"><tr><td colspan="8">Aguardando conferência.</td></tr></tbody></table></div></section></main><script>
+'use strict';let last=null;
+const $=id=>document.getElementById(id);
+const norm=v=>String(v??'').trim();
+const validDate=v=>/^\d{4}-\d{2}-\d{2}$/.test(norm(v));
+const parseCSV=s=>{s=s.replace(/^\uFEFF/,'');let rows=[],row=[],field='',quoted=false;for(let i=0;i<s.length;i++){let c=s[i];if(quoted){if(c==='"'&&s[i+1]==='"'){field+='"';i++}else if(c==='"')quoted=false;else field+=c}else if(c==='"')quoted=true;else if(c===','){row.push(field);field=''}else if(c==='\n'){row.push(field.replace(/\r$/,''));rows.push(row);row=[];field=''}else field+=c}if(quoted)throw Error('CSV com aspas não fechadas');if(row.length||field){row.push(field);rows.push(row)}const h=rows.shift()||[];return rows.filter(r=>r.some(x=>norm(x))).map(r=>Object.fromEntries(h.map((k,i)=>[norm(k),r[i]??''])))};
+const date=v=>norm(v).slice(0,10);
+const time=v=>norm(v).slice(0,5);
+const json=v=>{try{return JSON.parse(v)}catch{return null}};
+const safe=v=>{const e=document.createElement('span');e.textContent=norm(v);return e.innerHTML};
+const download=(name,data)=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),2000)};
+$('download').onclick=()=>{if(last)download('relatorio_v38_consolidacao_sem_sql.json',last)};
+$('run').onclick=async()=>{last=null;$('download').disabled=true;$('rows').replaceChildren();$('result').textContent='Conferindo arquivos...';try{
+for(const id of ['csv','v34','v37'])if(!$(id).files[0])throw Error('Selecione os três arquivos.');
+const [csvText,v34Text,v37Text]=await Promise.all(['csv','v34','v37'].map(id=>$(id).files[0].text()));
+const db=parseCSV(csvText),v34=JSON.parse(v34Text),v37=JSON.parse(v37Text);
+if(!Array.isArray(v34.registros)||!Array.isArray(v37.registros))throw Error('Formato de JSON inesperado.');
+const issues=[],alerts=[],out=[],dbMap=new Map(),pMap=new Map(),vMap=new Map();
+for(const b of db){const k=norm(b.boe);if(!k)issues.push('Backup: BO-e vazio');if(dbMap.has(k))issues.push('BO-e repetido no backup: '+k);dbMap.set(k,b)}
+for(const p of v34.registros){const k=norm(p.boe);if(pMap.has(k))issues.push('BO-e repetido na V34: '+k);pMap.set(k,p)}
+for(const v of v37.registros){const k=norm(v.boe);if(vMap.has(k))issues.push('BO-e repetido na V37: '+k);vMap.set(k,v)}
+if(db.length!==35||pMap.size!==35||vMap.size!==35)issues.push('Esperados 35 registros em cada arquivo.');
+let acc=0,others=0,dates=0,roads=0,types=0,leves=0,graves=0,fatais=0,horas=0;
+for(const [boe,p] of pMap){const b=dbMap.get(boe),v=vMap.get(boe),pr=p.proposta||{},err=[];
+if(!b){err.push('Ausente no backup');issues.push(boe+': ausente no backup')}
+if(!v){err.push('Ausente na V37');issues.push(boe+': ausente na V37')}
+if(b&&v){if(norm(b.rso)!==norm(p.rso))err.push('RSO diferente do backup');if(norm(b.rso)!==norm(v.rso)&&v.rso!=null)err.push('RSO diferente da V37');if(time(b.hora_sinistro)!==time(v.hora_excel)||time(v.hora_banco)!==time(v.hora_excel))err.push('Hora Fato diverge do banco');else horas++;
+if(date(b.data_sinistro)!==date(pr.data_sinistro))dates++;
+if(norm(b.rodovia)!==norm(pr.rodovia))roads++;
+if(!validDate(pr.data_sinistro))err.push('Data proposta inválida');
+if(!/^SP-\d{3}$/.test(norm(pr.rodovia)))err.push('Rodovia proposta fora do padrão SP-000');
+if(norm(pr.rodovia)==='SP-350'&&norm(p.rodovia_original)==='270/350')alerts.push('BO-e '+boe+': manter identificação original 270/350 em dados_originais; confirmar interpretação de SP-350.');
+if(norm(b.tipo_sinistro)!==norm(pr.tipo_sinistro)&&pr.tipo_sinistro!=null)types++;
+if(!p.rodovia_original)err.push('Rodovia original ausente');
+const isAcc=pr.contabilizar_sinistralidade===true;
+if(isAcc!==Boolean(v.acidente))err.push('Classificação V34 × V37 divergente');
+if(isAcc){acc++;if(!pr.tipo_sinistro)err.push('Acidente sem tipo')}else{others++;if(pr.tipo_sinistro)err.push('Outra natureza com tipo de acidente')}
+const victims=[pr.vitimas_leves,pr.vitimas_graves,pr.vitimas_fatais].map(Number),vv=(v.vitimas||[]).map(Number);
+if(victims.some((n,i)=>!Number.isInteger(n)||n<0||n!==vv[i]))err.push('Vítimas V34 × V37 divergentes');
+leves+=victims[0];graves+=victims[1];fatais+=victims[2];
+if(date(b.data_sinistro)!==date(p.antes?.data_sinistro))err.push('Data atual mudou desde a V34');
+if(norm(b.chave_registro)!=='B:'+boe)alerts.push(boe+': verificar chave_registro '+norm(b.chave_registro));
+if(!json(b.dados_originais))err.push('dados_originais inválido no backup');
+}if(err.length)issues.push(boe+': '+err.join('; '));out.push({boe,rso:norm(p.rso),data_atual:b?.data_sinistro,data_proposta:pr.data_sinistro,hora_preservada:b?.hora_sinistro,rodovia_atual:b?.rodovia,rodovia_proposta:pr.rodovia,rodovia_original:p.rodovia_original,natureza:pr.natureza,tipo:pr.tipo_sinistro,vitimas:[pr.vitimas_leves,pr.vitimas_graves,pr.vitimas_fatais],contabilizar_sinistralidade:pr.contabilizar_sinistralidade,erros:err});
+}
+for(const k of dbMap.keys())if(!pMap.has(k))issues.push('BO-e no backup sem proposta: '+k);
+for(const k of vMap.keys())if(!pMap.has(k))issues.push('BO-e V37 sem proposta: '+k);
+if(acc!==23||others!==12)issues.push('Classificação esperada: 23 acidentes, 12 outras naturezas');
+if(dates!==3)issues.push('Esperadas 3 divergências de datas; encontradas '+dates);
+if(roads!==35)issues.push('Esperadas 35 rodovias incorretas; encontradas '+roads);
+if(types!==23)issues.push('Esperados 23 tipos a preencher; encontrados '+types);
+if(horas!==35)issues.push('Esperadas 35 horas verificadas; encontradas '+horas);
+if(leves!==17||graves!==3||fatais!==2)issues.push('Totais preliminares de vítimas não coincidem com V37');
+if(v37.aprovado_estrutural!==true||v37.erros?.length)issues.push('V37 não está aprovada estruturalmente');
+alerts.push('Totais de vítimas são preliminares; exigem validação da metodologia antes da publicação.');
+alerts.push('Filtro do dashboard público por natureza continua pendente.');
+alerts.push('Reversão em banco real não foi testada; relatório não é autorização para gravação.');
+const approved=issues.length===0;
+last={versao:'V38',modo:'somente leitura; sem SQL; sem gravação',aprovado_estrutural:approved,quantitativos:{backup:db.length,propostas:pMap.size,auditoria_v37:vMap.size,horarios_conferidos:horas,acidentes:acc,outras_naturezas:others,datas_divergentes:dates,rodovias_a_corrigir:roads,tipos_a_preencher:types,vitimas_preliminares:{leves,graves,fatais}},erros:issues,alertas:alerts,registros:out,gerado_em:new Date().toISOString()};
+$('result').textContent=(approved?'VALIDAÇÃO ESTRUTURAL APROVADA':'VALIDAÇÃO BLOQUEADA')+' — SOMENTE LEITURA\n\nBO-e: '+db.length+' backup / '+pMap.size+' V34 / '+vMap.size+' V37\nHorários preservados: '+horas+'/35\nAcidentes: '+acc+' | Outras naturezas: '+others+'\nDatas a corrigir: '+dates+' | Rodovias a corrigir: '+roads+' | Tipos a preencher: '+types+'\nVítimas preliminares L/G/F: '+leves+'/'+graves+'/'+fatais+'\nERROS: '+issues.length+(issues.length?'\n- '+issues.join('\n- '):'')+'\n\nALERTAS:\n- '+alerts.join('\n- ')+'\n\nNENHUM DADO FOI GRAVADO. NENHUM SQL GERADO.';
+$('rows').innerHTML=out.map(x=>'<tr><td>'+safe(x.boe)+'</td><td>'+safe(x.rso)+'</td><td>'+safe(x.data_atual)+' → '+safe(x.data_proposta)+'</td><td>'+safe(x.rodovia_atual)+' → '+safe(x.rodovia_proposta)+'<br><small>Original: '+safe(x.rodovia_original)+'</small></td><td>'+safe(x.natureza)+'</td><td>'+safe(x.tipo||'—')+'</td><td>'+x.vitimas.join('/')+'</td><td class="'+(x.erros.length?'bad':'ok')+'">'+safe(x.erros.join('; ')||'Conferido')+'</td></tr>').join('');
+$('download').disabled=false;
+}catch(e){$('result').textContent='ERRO: '+e.message+'\nNenhuma alteração realizada.';}
+};
+</script></body></html>
