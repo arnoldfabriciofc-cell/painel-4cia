@@ -24,6 +24,8 @@ jobs:
         run: node tests/filtro-sinistralidade.test.js
       - name: Testar simulação de importação BO-e sem escrita
         run: node tests/planejar-importacao-boe.test.js
+      - name: Validar datas reais de BO-e
+        run: node tests/validar-data-boe.test.js
       - name: Auditar registros do HTML existente
         run: node tests/auditar-sinistralidade-html.js
       - name: Gerar prévia filtrada sem publicar
