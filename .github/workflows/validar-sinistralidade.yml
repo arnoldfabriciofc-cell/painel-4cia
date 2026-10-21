@@ -24,3 +24,8 @@ jobs:
         run: node tests/filtro-sinistralidade.test.js
       - name: Auditar registros do HTML existente
         run: node tests/auditar-sinistralidade-html.js
+      - name: Gerar prévia filtrada sem publicar
+        run: node scripts/gerar-previa-sinistralidade.js
+      - name: Validar números da prévia
+        run: |
+          node -e "const r=require('./dist/relatorio-previa.json'); if(r.registrosOriginais!==2502||r.acidentes!==2269||r.outrasNaturezasExcluidas!==233) process.exit(1)"
