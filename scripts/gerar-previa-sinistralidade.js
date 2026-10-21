@@ -13,12 +13,10 @@ const registros=JSON.parse(achado[1]);
 const filtro=require("../src/filtro-sinistralidade.js");
 const resumo=filtro.resumo(registros);
 if(resumo.duplicados.length) throw new Error("BO-e duplicados; geração interrompida");
-const scriptFiltro=fs.readFileSync(path.join(root,"src","filtro-sinistralidade.js"),"utf8");
-const novo=html.replace(marcador,(_,json)=>{
-  return "var DATA_BRUTA="+json+";\n"+
-    scriptFiltro+"\n"+
-    "var DATA=PainelSinistralidadeFiltro.filtrarAcidentes(DATA_BRUTA);\n"+
-    "function uniq(";
+const acidentes=filtro.filtrarAcidentes(registros);
+// A prévia contém somente acidentes: registros excluídos não são embarcados em DATA_BRUTA.
+const novo=html.replace(marcador,()=>{
+  return "var DATA="+JSON.stringify(acidentes)+";\nfunction uniq(";
 });
 if(novo===html) throw new Error("Substituição não aplicada");
 fs.mkdirSync(path.dirname(saida),{recursive:true});
