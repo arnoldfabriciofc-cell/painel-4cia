@@ -22,3 +22,5 @@ jobs:
           node-version: '22'
       - name: Testes de classificação e duplicidade
         run: node tests/filtro-sinistralidade.test.js
+      - name: Auditar registros do HTML existente
+        run: node tests/auditar-sinistralidade-html.js
