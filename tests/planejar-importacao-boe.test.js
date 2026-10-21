@@ -24,4 +24,6 @@ assert.equal(plano([{boe:"123"},{boe:"123"}],[]).aprovado,false);
 assert.equal(plano(atual,[{boe:"504888",data_sinistro:"2026-02-29"}]).aprovado,false);
 assert.equal(plano(atual,[{boe:"504888",data_sinistro:"2026-09-29",ano:2026,mes:10}]).aprovado,false);
 assert.equal(plano(atual,[{boe:"504888",data_sinistro:"2026-09-29",ano:2026,mes:9}]).aprovado,true);
-console.log("OK: inserções, revisão, duplicatas, campos protegidos e números inválidos");
+assert.equal(plano(atual,[]).aprovado,false);
+assert.equal(plano(atual,[]).erros.some(x=>x.includes("Lote vazio")),true);
+console.log("OK: inserções, revisão, duplicatas, campos protegidos, datas e lote vazio");
