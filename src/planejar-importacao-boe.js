@@ -27,7 +27,16 @@
        if(vistos.has(k)){erros.push("BO-e repetido no lote: "+k);return}
        vistos.add(k);
        ["vitimas_leves","vitimas_graves","vitimas_fatais","leve","grave","fatal"].forEach(n=>verificarNumero(r[n],n,k));
-       if(r.data_sinistro!==undefined&&!/^\d{4}-\d{2}-\d{2}$/.test(String(r.data_sinistro)))throw Error("Data fora do formato AAAA-MM-DD: "+k);
+       if(r.data_sinistro!==undefined){
+         const data=String(r.data_sinistro);
+         const partes=data.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+         if(!partes)throw Error("Data fora do formato AAAA-MM-DD: "+k);
+         const ano=Number(partes[1]),mes=Number(partes[2]),dia=Number(partes[3]);
+         const d=new Date(Date.UTC(ano,mes-1,dia));
+         if(d.getUTCFullYear()!==ano||d.getUTCMonth()!==mes-1||d.getUTCDate()!==dia)throw Error("Data inexistente: "+k);
+         if(r.ano!==undefined&&Number(r.ano)!==ano)throw Error("Ano divergente: "+k);
+         if(r.mes!==undefined&&Number(r.mes)!==mes)throw Error("Mês divergente: "+k);
+       }
        const antigo=existentes.get(k);
        if(!antigo){inserir.push(r);return}
        const mudancas={};
