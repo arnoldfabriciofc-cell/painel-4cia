@@ -8,11 +8,18 @@
   if(!Array.isArray(atuais)||!Array.isArray(novos))throw TypeError("Esperados arrays");
   const chaves=new Set(atuais.map(r=>String((r&&r.boe)??"").trim()));
   let novosSemData=0,novosIdentificados=0;
+  const vistos=new Set();
   for(const r of novos){
    const boe=String((r&&r.boe)??"").trim();
-   if(!/^\d+$/.test(boe)||chaves.has(boe))continue;
+   if(!/^\d+$/.test(boe)||chaves.has(boe)||vistos.has(boe))continue;
+   vistos.add(boe);
    novosIdentificados++;
    if(typeof r.data_sinistro!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(r.data_sinistro))novosSemData++;
+   else {
+    const [ano,mes,dia]=r.data_sinistro.split("-").map(Number);
+    const data=new Date(Date.UTC(ano,mes-1,dia));
+    if(data.getUTCFullYear()!==ano||data.getUTCMonth()!==mes-1||data.getUTCDate()!==dia)novosSemData++;
+   }
   }
   return Object.freeze({
    tipo:"VERIFICAÇÃO COMPLEMENTAR DE NOVOS REGISTROS",
