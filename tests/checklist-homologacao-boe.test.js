@@ -1,0 +1,18 @@
+const assert=require("node:assert/strict");
+const {ITENS,avaliar}=require("../src/checklist-homologacao-boe.js");
+const vazio=avaliar({});
+assert.equal(vazio.confirmados,0);
+assert.equal(vazio.pendentes.length,ITENS.length);
+assert.equal(vazio.checklist_completo,false);
+assert.equal(vazio.gravacao_autorizada,false);
+const parcial=avaliar({rls_validada:"true",backup_restauracao_testados:1,esquema_conferido:true});
+assert.equal(parcial.confirmados,1);
+assert.equal(parcial.pendentes.includes("rls_validada"),true);
+const completo=avaliar(Object.fromEntries(ITENS.map(item=>[item,true])));
+assert.equal(completo.checklist_completo,true);
+assert.equal(completo.gravacao_autorizada,false);
+assert.equal(completo.pendentes.length,0);
+assert.throws(()=>avaliar(null),TypeError);
+assert.throws(()=>avaliar([]),TypeError);
+assert.equal(JSON.stringify(completo).includes("service_role"),false);
+console.log("OK: checklist exige evidência explícita e nunca autoriza gravação");
