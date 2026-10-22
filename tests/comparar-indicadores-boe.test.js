@@ -1,0 +1,16 @@
+const assert=require("node:assert/strict");
+const {comparar}=require("../src/comparar-indicadores-boe.js");
+const antes={sinistros:100,vitimas_leves:80,vitimas_graves:12,vitimas_fatais:4};
+const depois={sinistros:102,vitimas_leves:81,vitimas_graves:12,vitimas_fatais:5};
+const c=comparar(antes,depois);
+assert.deepEqual(c.diferencas,{sinistros:2,vitimas_leves:1,vitimas_graves:0,vitimas_fatais:1});
+assert.equal(c.alteracoes_detectadas,true);
+assert.equal(c.revisao_necessaria,true);
+assert.equal(c.gravacao_autorizada,false);
+assert.equal(comparar(antes,antes).alteracoes_detectadas,false);
+assert.equal(comparar(antes,antes).gravacao_autorizada,false);
+assert.throws(()=>comparar({...antes,vitimas_fatais:-1},depois),TypeError);
+assert.throws(()=>comparar({...antes,sinistros:1.5},depois),TypeError);
+assert.throws(()=>comparar({},depois),TypeError);
+assert.equal(JSON.stringify(c).includes("boe"),false);
+console.log("OK: diferenças agregadas, validação numérica e escrita bloqueada");
