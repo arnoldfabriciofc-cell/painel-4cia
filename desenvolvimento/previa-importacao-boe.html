@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Prévia local BO-e — somente simulação</title>
+<style>
+:root{color-scheme:dark;font-family:Arial,sans-serif;background:#101010;color:#f4f4f4}
+body{max-width:850px;margin:32px auto;padding:0 18px}
+h1{color:#ffd52a} .alerta{border-left:4px solid #ffd52a;padding:12px;background:#28251a}
+textarea{box-sizing:border-box;width:100%;min-height:130px;background:#202020;color:#fff;border:1px solid #777;padding:12px}
+button{background:#ffd52a;color:#111;border:0;border-radius:4px;padding:12px 20px;font-weight:bold;cursor:pointer}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#202020;padding:16px}
+label{display:block;font-weight:bold;margin:20px 0 8px}
+small{color:#bbb}
+</style>
+</head>
+<body>
+<h1>Prévia de importação BO-e</h1>
+<p class="alerta"><strong>AMBIENTE DE DESENVOLVIMENTO — SEM GRAVAÇÃO.</strong> Não há login, integração com Supabase ou autorização de importação. Esta página não deve ser publicada como painel administrativo.</p>
+<p>Informe dois arrays JSON com <strong>dados fictícios</strong> para simular a comparação. Não cole dados reais ou sigilosos nesta página.</p>
+<label for="atuais">Registros existentes (JSON)</label>
+<textarea id="atuais" spellcheck="false">[{"boe":"100001","data_sinistro":"2026-10-01","ano":2026,"mes":10}]</textarea>
+<label for="novos">Lote recebido (JSON)</label>
+<textarea id="novos" spellcheck="false">[{"boe":"100001","data_sinistro":"2026-10-01","ano":2026,"mes":10},{"boe":"100002","data_sinistro":"2026-10-02","ano":2026,"mes":10}]</textarea>
+<p><button type="button" id="simular">Simular sem gravar</button></p>
+<h2>Resultado agregado</h2>
+<pre id="saida" role="status" aria-live="polite">Aguardando simulação.</pre>
+<small>Somente os totais são exibidos. Nenhuma informação é enviada a um servidor por este código.</small>
+<script src="../src/planejar-importacao-boe.js"></script>
+<script src="../src/resumo-seguro-importacao.js"></script>
+<script>
+document.getElementById("simular").addEventListener("click",function(){
+ const saida=document.getElementById("saida");
+ try{
+  const atuais=JSON.parse(document.getElementById("atuais").value);
+  const novos=JSON.parse(document.getElementById("novos").value);
+  const plano=window.PainelBoeImportacao.plano(atuais,novos);
+  const resumo=window.PainelResumoImportacao.resumoSeguro(plano);
+  saida.textContent=JSON.stringify(resumo,null,2);
+ }catch(e){saida.textContent="Não foi possível simular. Confira se os dois campos contêm arrays JSON válidos."}
+});
+</script>
+</body>
+</html>
