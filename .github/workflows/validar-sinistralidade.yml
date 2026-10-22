@@ -38,6 +38,8 @@ jobs:
         run: node tests/diagnostico-seguranca-supabase.test.js
       - name: Testar checklist de homologação BO-e
         run: node tests/checklist-homologacao-boe.test.js
+      - name: Testar conferência de indicadores BO-e
+        run: node tests/comparar-indicadores-boe.test.js
       - name: Auditar registros do HTML existente
         run: node tests/auditar-sinistralidade-html.js
       - name: Gerar prévia filtrada sem publicar
