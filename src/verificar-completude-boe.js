@@ -6,10 +6,10 @@
  "use strict";
  function verificar(atuais,novos){
   if(!Array.isArray(atuais)||!Array.isArray(novos))throw TypeError("Esperados arrays");
-  const chaves=new Set(atuais.map(r=>String(r&&r.boe??"").trim()));
+  const chaves=new Set(atuais.map(r=>String((r&&r.boe)??"").trim()));
   let novosSemData=0,novosIdentificados=0;
   for(const r of novos){
-   const boe=String(r&&r.boe??"").trim();
+   const boe=String((r&&r.boe)??"").trim();
    if(!/^\d+$/.test(boe)||chaves.has(boe))continue;
    novosIdentificados++;
    if(typeof r.data_sinistro!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(r.data_sinistro))novosSemData++;
