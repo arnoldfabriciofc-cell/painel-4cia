@@ -21,7 +21,7 @@
      situacao:bloqueado?"BLOQUEADO":pendencias?"REVISÃO DE ALTERAÇÕES NECESSÁRIA":"PRONTO PARA CONFERÊNCIA",
      gravacao_autorizada:false,
      contagens:Object.fromEntries(campos.map(c=>[c,t[c]])),
-     conferencia:{lote_nao_vazio:t.recebidos>0,sem_erros:t.erros===0,contagens_consistentes:consistente,alteracoes_pendentes:pendencias},
+     conferencia:{lote_nao_vazio:t.recebidos>0,sem_erros:t.erros===0&&plano.aprovado===true,contagens_consistentes:consistente,alteracoes_pendentes:pendencias},
      aviso:"Não contém registros individuais e não executa importação."
    };
  }
