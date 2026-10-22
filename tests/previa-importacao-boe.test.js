@@ -5,8 +5,8 @@ const html=fs.readFileSync(path.join(__dirname,"../desenvolvimento/previa-import
 assert.match(html,/AMBIENTE DE DESENVOLVIMENTO/);
 assert.match(html,/SEM GRAVAÇÃO/);
 assert.match(html,/dados fictícios/);
-assert.match(html,/PainelBoeImportacao\.plano/);
-assert.match(html,/PainelResumoImportacao\.resumoSeguro/);
+assert.match(html,/PainelBoePrevia\.simular/);
+assert.match(html,/portao-importacao-boe\.js/);
 assert.doesNotMatch(html,/https?:\/\//i);
 assert.doesNotMatch(html,/fetch\s*\(|XMLHttpRequest|supabase\.from|createClient\s*\(/i);
 assert.doesNotMatch(html,/service_role|apikey|authorization\s*:/i);
