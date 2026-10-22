@@ -1,0 +1,65 @@
+name: Validar filtro de sinistralidade
+on:
+  push:
+    branches:
+      - preparacao-painel-comandantes-20261021
+  pull_request:
+    paths:
+      - 'src/filtro-sinistralidade.js'
+      - 'tests/filtro-sinistralidade.test.js'
+      - '.github/workflows/validar-sinistralidade.yml'
+permissions:
+  contents: read
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Testes de classificação e duplicidade
+        run: node tests/filtro-sinistralidade.test.js
+      - name: Testar simulação de importação BO-e sem escrita
+        run: node tests/planejar-importacao-boe.test.js
+      - name: Validar datas reais de BO-e
+        run: node tests/validar-data-boe.test.js
+      - name: Testar relatório seguro de importação
+        run: node tests/resumo-seguro-importacao.test.js
+      - name: Verificar isolamento da prévia administrativa
+        run: node tests/previa-importacao-boe.test.js
+      - name: Testar portão de validação BO-e
+        run: node tests/portao-importacao-boe.test.js
+      - name: Testar fluxo completo de prévia BO-e
+        run: node tests/previa-segura-boe.test.js
+      - name: Verificar diagnóstico SQL somente leitura
+        run: node tests/diagnostico-seguranca-supabase.test.js
+      - name: Testar checklist de homologação BO-e
+        run: node tests/checklist-homologacao-boe.test.js
+      - name: Testar conferência de indicadores BO-e
+        run: node tests/comparar-indicadores-boe.test.js
+      - name: Testar cenários integrados de importação BO-e
+        run: node tests/integracao-importacao-boe.test.js
+      - name: Testar relatório de prontidão BO-e
+        run: node tests/relatorio-prontidao-boe.test.js
+      - name: Testar completude de novos BO-e
+        run: node tests/verificar-completude-boe.test.js
+      - name: Auditar registros do HTML existente
+        run: node tests/auditar-sinistralidade-html.js
+      - name: Gerar prévia filtrada sem publicar
+        run: node scripts/gerar-previa-sinistralidade.js
+      - name: Verificar exclusão real das outras naturezas na prévia
+        run: node tests/validar-previa-gerada.js
+      - name: Validar números da prévia
+        run: |
+          node -e "const r=require('./dist/relatorio-previa.json'); if(r.registrosOriginais!==2502||r.acidentes!==2269||r.outrasNaturezasExcluidas!==233) process.exit(1)"
+      - name: Disponibilizar prévia como artefato privado da execução
+        uses: actions/upload-artifact@v4
+        with:
+          name: previa-sinistralidade-filtrada
+          path: |
+            dist/sinistralidade-previa-filtrada.html
+            dist/relatorio-previa.json
+          retention-days: 14

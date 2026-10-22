@@ -1,0 +1,17 @@
+const assert=require("node:assert/strict");
+const {verificar}=require("../src/verificar-completude-boe.js");
+const atual=[{boe:"900001"}];
+const r=verificar(atual,[{boe:"900001"},{boe:"900002"},{boe:"900003",data_sinistro:"2026-10-22"}]);
+assert.equal(r.novos_identificados,2);
+assert.equal(r.novos_sem_data,1);
+assert.equal(r.completo,false);
+assert.equal(r.gravacao_autorizada,false);
+assert.equal(verificar([],[{boe:"900004",data_sinistro:"2026-10-22"}]).completo,true);
+assert.equal(JSON.stringify(r).includes("900002"),false);
+assert.throws(()=>verificar({},[]),TypeError);
+const repetidos=verificar([],[{boe:"900010",data_sinistro:"2026-10-22"},{boe:"900010",data_sinistro:"2026-10-22"}]);
+assert.equal(repetidos.novos_identificados,1);
+const dataInexistente=verificar([],[{boe:"900011",data_sinistro:"2026-02-30"}]);
+assert.equal(dataInexistente.completo,false);
+assert.equal(dataInexistente.novos_sem_data,1);
+console.log("OK: completude de novos BO-e sem exposição de identificadores");

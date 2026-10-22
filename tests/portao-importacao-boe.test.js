@@ -1,0 +1,18 @@
+const assert=require("node:assert/strict");
+const {plano}=require("../src/planejar-importacao-boe.js");
+const {avaliar}=require("../src/portao-importacao-boe.js");
+const bom=avaliar(plano([],[{boe:"101",data_sinistro:"2026-10-02"}]));
+assert.equal(bom.simulacao_valida,true);
+assert.equal(bom.pode_gravar,false);
+const ruim=avaliar(plano([],[{boe:"101"},{boe:"101"}]));
+assert.equal(ruim.simulacao_valida,false);
+assert.equal(ruim.motivos.includes("REGISTROS_INVALIDOS"),true);
+assert.equal(ruim.pode_gravar,false);
+const revisar=avaliar(plano([{boe:"101",rodovia:"330"}],[{boe:"101",rodovia:"348"}]));
+assert.equal(revisar.requer_revisao,true);
+assert.equal(revisar.simulacao_valida,false);
+assert.equal(revisar.pode_gravar,false);
+assert.equal(avaliar(plano([],[])).simulacao_valida,false);
+assert.equal(avaliar({modo:"SOMENTE SIMULAÇÃO",aprovado:true,totais:{atuais:0,recebidos:1,inserir:2,iguais:0,revisar:0,erros:0}}).simulacao_valida,false);
+assert.equal(JSON.stringify(bom).includes("101"),false);
+console.log("OK: bloqueio de lotes inválidos, revisão pendente e nenhuma gravação");

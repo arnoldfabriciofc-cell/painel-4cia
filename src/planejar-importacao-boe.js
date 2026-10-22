@@ -1,0 +1,63 @@
+/* Preparação de importação BO-e em memória, SEM conexão com Supabase.
+ * Só valida e propõe ações; não grava nada.
+ */
+(function(root,factory){
+ if(typeof module==="object"&&module.exports)module.exports=factory();
+ else root.PainelBoeImportacao=factory();
+})(typeof globalThis!=="undefined"?globalThis:this,function(){
+ "use strict";
+ const IDENTIDADE=["boe","rso","id","chave_registro","hora_sinistro"];
+ function chave(r){
+   const b=String(r&&r.boe!=null?r.boe:"").trim();
+   if(!/^\d+$/.test(b))throw Error("BO-e inválido: "+b);
+   return b;
+ }
+ function verificarNumero(v,nome,boe){
+   if(v===undefined||v===null||v==="")return;
+   const n=Number(v);
+   if(!Number.isSafeInteger(n)||n<0)throw Error("Contagem inválida: "+nome+" BO-e "+boe);
+ }
+ function plano(atuais,novos){
+   if(!Array.isArray(atuais)||!Array.isArray(novos))throw TypeError("Esperados arrays");
+   const existentes=new Map(),vistos=new Set(),erros=[],inserir=[],iguais=[],revisar=[];
+   let errosLote=0;
+   atuais.forEach((r,i)=>{try{const k=chave(r);if(existentes.has(k)){erros.push("BO-e duplicado na base atual: "+k);return}existentes.set(k,r)}catch(e){erros.push("Base atual linha "+(i+1)+": "+e.message)}});
+   novos.forEach((r,i)=>{
+     try{
+       const k=chave(r);
+       if(vistos.has(k)){erros.push("BO-e repetido no lote: "+k);errosLote++;return}
+       vistos.add(k);
+       ["vitimas_leves","vitimas_graves","vitimas_fatais","leve","grave","fatal"].forEach(n=>verificarNumero(r[n],n,k));
+       if(r.data_sinistro!==undefined){
+         const data=String(r.data_sinistro);
+         const partes=data.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+         if(!partes)throw Error("Data fora do formato AAAA-MM-DD: "+k);
+         const ano=Number(partes[1]),mes=Number(partes[2]),dia=Number(partes[3]);
+         const d=new Date(Date.UTC(ano,mes-1,dia));
+         if(d.getUTCFullYear()!==ano||d.getUTCMonth()!==mes-1||d.getUTCDate()!==dia)throw Error("Data inexistente: "+k);
+         if(r.ano!==undefined&&Number(r.ano)!==ano)throw Error("Ano divergente: "+k);
+         if(r.mes!==undefined&&Number(r.mes)!==mes)throw Error("Mês divergente: "+k);
+       }
+       const antigo=existentes.get(k);
+       if(!antigo){inserir.push(r);return}
+       if(r.data_sinistro!==undefined&&antigo.data_sinistro!==undefined&&String(r.data_sinistro)!==String(antigo.data_sinistro)){
+         if(antigo.ano!==undefined&&r.ano===undefined)throw Error("Correção de data exige ano explícito: "+k);
+         if(antigo.mes!==undefined&&r.mes===undefined)throw Error("Correção de data exige mês explícito: "+k);
+       }
+       const mudancas={};
+       for(const [campo,valor] of Object.entries(r)){
+         if(IDENTIDADE.includes(campo)){
+           if(antigo[campo]!==undefined&&String(antigo[campo]??"")!==String(valor??""))throw Error("Campo protegido divergente: "+campo+" BO-e "+k);
+           continue;
+         }
+         if(antigo[campo]!==undefined&&String(antigo[campo]??"")!==String(valor??""))mudancas[campo]={antes:antigo[campo],depois:valor};
+       }
+       if(Object.keys(mudancas).length)revisar.push({boe:k,mudancas});
+       else iguais.push(k);
+     }catch(e){erros.push("Lote linha "+(i+1)+": "+e.message);errosLote++}
+   });
+   if(novos.length===0)erros.push("Lote vazio: nenhuma alteração autorizável");
+   return {modo:"SOMENTE SIMULAÇÃO",aprovado:erros.length===0,totais:{atuais:atuais.length,recebidos:novos.length,inserir:inserir.length,iguais:iguais.length,revisar:revisar.length,erros:errosLote},inserir,iguais,revisar,erros};
+ }
+ return {plano};
+});

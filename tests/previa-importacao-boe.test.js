@@ -1,0 +1,16 @@
+const assert=require("node:assert/strict");
+const fs=require("node:fs");
+const path=require("node:path");
+const html=fs.readFileSync(path.join(__dirname,"../desenvolvimento/previa-importacao-boe.html"),"utf8");
+assert.match(html,/AMBIENTE DE DESENVOLVIMENTO/);
+assert.match(html,/SEM GRAVAÇÃO/);
+assert.match(html,/dados fictícios/);
+assert.match(html,/PainelBoeProntidao\.gerar/);
+assert.match(html,/portao-importacao-boe\.js/);
+assert.match(html,/relatorio-prontidao-boe\.js/);
+assert.match(html,/gerar\(atuais,novos,\{\}\)/);
+assert.doesNotMatch(html,/https?:\/\//i);
+assert.doesNotMatch(html,/fetch\s*\(|XMLHttpRequest|supabase\.from|createClient\s*\(/i);
+assert.doesNotMatch(html,/service_role|apikey|authorization\s*:/i);
+assert.doesNotMatch(html,/localStorage|sessionStorage/i);
+console.log("OK: protótipo de prévia isolado, sem rede, armazenamento ou credenciais");
