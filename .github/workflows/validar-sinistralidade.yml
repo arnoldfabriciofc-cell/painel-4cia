@@ -30,6 +30,8 @@ jobs:
         run: node tests/resumo-seguro-importacao.test.js
       - name: Verificar isolamento da prévia administrativa
         run: node tests/previa-importacao-boe.test.js
+      - name: Testar portão de validação BO-e
+        run: node tests/portao-importacao-boe.test.js
       - name: Auditar registros do HTML existente
         run: node tests/auditar-sinistralidade-html.js
       - name: Gerar prévia filtrada sem publicar
