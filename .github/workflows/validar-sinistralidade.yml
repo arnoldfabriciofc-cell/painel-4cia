@@ -32,6 +32,8 @@ jobs:
         run: node tests/previa-importacao-boe.test.js
       - name: Testar portão de validação BO-e
         run: node tests/portao-importacao-boe.test.js
+      - name: Testar fluxo completo de prévia BO-e
+        run: node tests/previa-segura-boe.test.js
       - name: Auditar registros do HTML existente
         run: node tests/auditar-sinistralidade-html.js
       - name: Gerar prévia filtrada sem publicar
