@@ -9,6 +9,7 @@ assert.equal(pendente.homologacao.pendentes.length,ITENS.length);
 assert.equal(pendente.impedimentos.includes("HOMOLOGACAO_INCOMPLETA"),true);
 const pronto=gerar([],novo,ok);
 assert.equal(pronto.pronto_para_analise,true);
+assert.equal(pronto.completude.completo,true);
 assert.equal(pronto.gravacao_autorizada,false);
 const revisar=gerar([{boe:"900001",rodovia:"330"}],[{boe:"900001",rodovia:"348"}],ok);
 assert.equal(revisar.impedimentos.includes("ALTERACOES_EXIGEM_REVISAO"),true);
@@ -19,4 +20,8 @@ for(const item of [pendente,pronto,revisar,invalido]){
  assert.equal(JSON.stringify(item).includes("900001"),false);
  assert.equal(JSON.stringify(item).includes("rodovia"),false);
 }
+const incompleto=gerar([],[{boe:"900005"}],ok);
+assert.equal(incompleto.completude.novos_sem_data,1);
+assert.equal(incompleto.impedimentos.includes("NOVOS_REGISTROS_INCOMPLETOS"),true);
+assert.equal(incompleto.pronto_para_analise,false);
 console.log("OK: relatório agregado de prontidão, pendências e bloqueio permanente de escrita");
