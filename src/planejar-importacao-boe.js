@@ -21,7 +21,7 @@
    if(!Array.isArray(atuais)||!Array.isArray(novos))throw TypeError("Esperados arrays");
    const existentes=new Map(),vistos=new Set(),erros=[],inserir=[],iguais=[],revisar=[];
    let errosLote=0;
-   atuais.forEach((r,i)=>{try{const k=chave(r);if(existentes.has(k))erros.push("BO-e duplicado na base atual: "+k);existentes.set(k,r)}catch(e){erros.push("Base atual linha "+(i+1)+": "+e.message)}});
+   atuais.forEach((r,i)=>{try{const k=chave(r);if(existentes.has(k)){erros.push("BO-e duplicado na base atual: "+k);return}existentes.set(k,r)}catch(e){erros.push("Base atual linha "+(i+1)+": "+e.message)}});
    novos.forEach((r,i)=>{
      try{
        const k=chave(r);
