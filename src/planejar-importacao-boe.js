@@ -20,11 +20,12 @@
  function plano(atuais,novos){
    if(!Array.isArray(atuais)||!Array.isArray(novos))throw TypeError("Esperados arrays");
    const existentes=new Map(),vistos=new Set(),erros=[],inserir=[],iguais=[],revisar=[];
+   let errosLote=0;
    atuais.forEach((r,i)=>{try{const k=chave(r);if(existentes.has(k))erros.push("BO-e duplicado na base atual: "+k);existentes.set(k,r)}catch(e){erros.push("Base atual linha "+(i+1)+": "+e.message)}});
    novos.forEach((r,i)=>{
      try{
        const k=chave(r);
-       if(vistos.has(k)){erros.push("BO-e repetido no lote: "+k);return}
+       if(vistos.has(k)){erros.push("BO-e repetido no lote: "+k);errosLote++;return}
        vistos.add(k);
        ["vitimas_leves","vitimas_graves","vitimas_fatais","leve","grave","fatal"].forEach(n=>verificarNumero(r[n],n,k));
        if(r.data_sinistro!==undefined){
@@ -53,10 +54,10 @@
        }
        if(Object.keys(mudancas).length)revisar.push({boe:k,mudancas});
        else iguais.push(k);
-     }catch(e){erros.push("Lote linha "+(i+1)+": "+e.message)}
+     }catch(e){erros.push("Lote linha "+(i+1)+": "+e.message);errosLote++}
    });
    if(novos.length===0)erros.push("Lote vazio: nenhuma alteração autorizável");
-   return {modo:"SOMENTE SIMULAÇÃO",aprovado:erros.length===0,totais:{atuais:atuais.length,recebidos:novos.length,inserir:inserir.length,iguais:iguais.length,revisar:revisar.length,erros:erros.length},inserir,iguais,revisar,erros};
+   return {modo:"SOMENTE SIMULAÇÃO",aprovado:erros.length===0,totais:{atuais:atuais.length,recebidos:novos.length,inserir:inserir.length,iguais:iguais.length,revisar:revisar.length,erros:errosLote},inserir,iguais,revisar,erros};
  }
  return {plano};
 });
