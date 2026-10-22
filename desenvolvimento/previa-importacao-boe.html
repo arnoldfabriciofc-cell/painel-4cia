@@ -25,20 +25,22 @@ small{color:#bbb}
 <label for="novos">Lote recebido (JSON)</label>
 <textarea id="novos" spellcheck="false">[{"boe":"100001","data_sinistro":"2026-10-01","ano":2026,"mes":10},{"boe":"100002","data_sinistro":"2026-10-02","ano":2026,"mes":10}]</textarea>
 <p><button type="button" id="simular">Simular sem gravar</button></p>
-<h2>Resultado agregado</h2>
+<h2>Resultado agregado e prontidão</h2>
 <pre id="saida" role="status" aria-live="polite">Aguardando simulação.</pre>
-<small>Somente os totais são exibidos. Nenhuma informação é enviada a um servidor por este código.</small>
+<small>Somente os totais e as pendências são exibidos. O checklist começa inteiramente pendente, pois não houve validação do Supabase real. Nenhuma informação é enviada a um servidor por este código.</small>
 <script src="../src/planejar-importacao-boe.js"></script>
 <script src="../src/resumo-seguro-importacao.js"></script>
 <script src="../src/portao-importacao-boe.js"></script>
 <script src="../src/previa-segura-boe.js"></script>
+<script src="../src/checklist-homologacao-boe.js"></script>
+<script src="../src/relatorio-prontidao-boe.js"></script>
 <script>
 document.getElementById("simular").addEventListener("click",function(){
  const saida=document.getElementById("saida");
  try{
   const atuais=JSON.parse(document.getElementById("atuais").value);
   const novos=JSON.parse(document.getElementById("novos").value);
-  const resultado=window.PainelBoePrevia.simular(atuais,novos);
+  const resultado=window.PainelBoeProntidao.gerar(atuais,novos,{});
   saida.textContent=JSON.stringify(resultado,null,2);
  }catch(e){saida.textContent="Não foi possível simular. Confira se os dois campos contêm arrays JSON válidos."}
 });
