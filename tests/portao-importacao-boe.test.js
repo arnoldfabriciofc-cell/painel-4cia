@@ -13,6 +13,6 @@ assert.equal(revisar.requer_revisao,true);
 assert.equal(revisar.simulacao_valida,false);
 assert.equal(revisar.pode_gravar,false);
 assert.equal(avaliar(plano([],[])).simulacao_valida,false);
-assert.throws(()=>avaliar({modo:"SOMENTE SIMULAÇÃO",aprovado:true,totais:{atuais:0,recebidos:1,inserir:2,iguais:0,revisar:0,erros:0}}).simulacao_valida===true);
+assert.equal(avaliar({modo:"SOMENTE SIMULAÇÃO",aprovado:true,totais:{atuais:0,recebidos:1,inserir:2,iguais:0,revisar:0,erros:0}}).simulacao_valida,false);
 assert.equal(JSON.stringify(bom).includes("101"),false);
 console.log("OK: bloqueio de lotes inválidos, revisão pendente e nenhuma gravação");
