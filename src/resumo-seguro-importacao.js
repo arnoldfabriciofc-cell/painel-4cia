@@ -15,12 +15,13 @@
    }
    const consistente=t.recebidos===t.inserir+t.iguais+t.revisar+t.erros;
    const bloqueado=t.erros>0||t.recebidos===0||!consistente||plano.aprovado!==true;
+   const pendencias=t.revisar>0;
    return {
      tipo:"RESUMO ANÔNIMO DE SIMULAÇÃO",
-     situacao:bloqueado?"BLOQUEADO":"PRONTO PARA REVISÃO HUMANA",
+     situacao:bloqueado?"BLOQUEADO":pendencias?"REVISÃO DE ALTERAÇÕES NECESSÁRIA":"PRONTO PARA CONFERÊNCIA",
      gravacao_autorizada:false,
      contagens:Object.fromEntries(campos.map(c=>[c,t[c]])),
-     conferencia:{lote_nao_vazio:t.recebidos>0,sem_erros:t.erros===0,contagens_consistentes:consistente},
+     conferencia:{lote_nao_vazio:t.recebidos>0,sem_erros:t.erros===0,contagens_consistentes:consistente,alteracoes_pendentes:pendencias},
      aviso:"Não contém registros individuais e não executa importação."
    };
  }
