@@ -33,4 +33,13 @@ const correcao=plano(baseData,[{boe:"504408",data_sinistro:"2026-09-29",ano:2026
 assert.equal(correcao.aprovado,true);
 assert.equal(correcao.totais.revisar,1);
 assert.equal(correcao.revisar[0].mudancas.mes.depois,9);
+const baseDuplicada=plano([{boe:"900"},{boe:"900"}],[{boe:"901"}]);
+assert.equal(baseDuplicada.aprovado,false);
+assert.equal(baseDuplicada.totais.recebidos,1);
+assert.equal(baseDuplicada.totais.inserir,1);
+assert.equal(baseDuplicada.totais.erros,0);
+assert.equal(baseDuplicada.erros.length,1);
+const loteDuplicado=plano([],[{boe:"901"},{boe:"901"}]);
+assert.equal(loteDuplicado.totais.erros,1);
+assert.equal(loteDuplicado.totais.recebidos,loteDuplicado.totais.inserir+loteDuplicado.totais.iguais+loteDuplicado.totais.revisar+loteDuplicado.totais.erros);
 console.log("OK: inserções, revisão, duplicatas, campos protegidos, datas e lote vazio");
