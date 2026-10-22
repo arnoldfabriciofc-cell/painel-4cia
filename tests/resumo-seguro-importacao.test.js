@@ -1,0 +1,15 @@
+const assert=require("node:assert/strict");
+const {plano}=require("../src/planejar-importacao-boe.js");
+const {resumoSeguro}=require("../src/resumo-seguro-importacao.js");
+const ok=resumoSeguro(plano([],[{boe:"503994",data_sinistro:"2026-10-03",vitimas_graves:2}]));
+assert.equal(ok.situacao,"PRONTO PARA REVISÃO HUMANA");
+assert.equal(ok.gravacao_autorizada,false);
+assert.equal(ok.contagens.inserir,1);
+assert.equal(JSON.stringify(ok).includes("503994"),false);
+assert.equal(JSON.stringify(ok).includes("2026-10-03"),false);
+const vazio=resumoSeguro(plano([],[]));
+assert.equal(vazio.situacao,"BLOQUEADO");
+const duplicado=resumoSeguro(plano([],[{boe:"1"},{boe:"1"}]));
+assert.equal(duplicado.situacao,"BLOQUEADO");
+assert.throws(()=>resumoSeguro({modo:"SOMENTE SIMULAÇÃO",aprovado:true,totais:{atuais:0,recebidos:-1,inserir:0,iguais:0,revisar:0,erros:0}}));
+console.log("OK: resumo agregado, bloqueios e ausência de identificadores BO-e");
