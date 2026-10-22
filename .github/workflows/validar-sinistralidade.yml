@@ -44,6 +44,8 @@ jobs:
         run: node tests/integracao-importacao-boe.test.js
       - name: Testar relatório de prontidão BO-e
         run: node tests/relatorio-prontidao-boe.test.js
+      - name: Testar completude de novos BO-e
+        run: node tests/verificar-completude-boe.test.js
       - name: Auditar registros do HTML existente
         run: node tests/auditar-sinistralidade-html.js
       - name: Gerar prévia filtrada sem publicar
