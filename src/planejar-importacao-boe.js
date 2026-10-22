@@ -39,7 +39,10 @@
          if(r.mes!==undefined&&Number(r.mes)!==mes)throw Error("Mês divergente: "+k);
        }
        const antigo=existentes.get(k);
-       if(!antigo){inserir.push(r);return}
+       if(!antigo){
+         if(r.data_sinistro===undefined||r.data_sinistro===null||r.data_sinistro==="")throw Error("Novo BO-e sem data do sinistro: "+k);
+         inserir.push(r);return
+       }
        if(r.data_sinistro!==undefined&&antigo.data_sinistro!==undefined&&String(r.data_sinistro)!==String(antigo.data_sinistro)){
          if(antigo.ano!==undefined&&r.ano===undefined)throw Error("Correção de data exige ano explícito: "+k);
          if(antigo.mes!==undefined&&r.mes===undefined)throw Error("Correção de data exige mês explícito: "+k);
