@@ -22,7 +22,7 @@ jobs:
               print('Cartao ja atualizado')
               raise SystemExit(0)
           print('Referencias da pagina inicial:')
-          for pat in ['hs-base','hs-sin','hotspot','background-image','show(\\'geo\\')']:
+          for pat in ['hs-base','hs-sin','hotspot','background-image']:
               i=s.find(pat)
               print(pat, i, repr(s[max(0,i-180):i+200]) if i>=0 else '')
           # A arte original continua como plano de fundo. O novo cartao cobre o cartao antigo.
