@@ -1,0 +1,61 @@
+name: Atualizar cartao Geoprocessamento
+on:
+  push:
+    paths:
+      - '.github/workflows/atualizar-cartao-geoprocessamento.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Substituir cartao na pagina inicial
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          if 'geo-card-overlay-v1' in s:
+              print('Cartao ja atualizado')
+              raise SystemExit(0)
+          print('Referencias da pagina inicial:')
+          for pat in ['hs-base','hs-sin','hotspot','background-image','show(\\'geo\\')']:
+              i=s.find(pat)
+              print(pat, i, repr(s[max(0,i-180):i+200]) if i>=0 else '')
+          # A arte original continua como plano de fundo. O novo cartao cobre o cartao antigo.
+          css='''<style id="geo-card-overlay-v1">
+          .geo-card-overlay-v1{position:absolute;left:77.2%;top:54.0%;width:13.1%;height:19.5%;z-index:12;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;background:linear-gradient(135deg,#141414,#020202 70%);border:2px solid #f3ca00;border-radius:12px;color:white;text-align:center;font-family:Arial,sans-serif;cursor:pointer;box-shadow:0 0 0 2px #070707,0 3px 15px #000a;text-decoration:none;}
+          .geo-card-overlay-v1 svg{width:31%;height:35%;max-height:70px;fill:none;stroke:#ffdb00;stroke-width:3;stroke-linejoin:round;stroke-linecap:round;}
+          .geo-card-overlay-v1 strong{font-size:clamp(8px,1vw,17px);line-height:1.1;}
+          .geo-card-overlay-v1 span{border-radius:50%;background:#ffdb00;color:#050505;width:29px;height:29px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:bold;}
+          .geo-card-overlay-v1:hover{filter:brightness(1.2)}
+          </style>'''
+          card='''<a class="geo-card-overlay-v1" href="#" onclick="event.preventDefault();show('geo')" aria-label="Abrir Geoprocessamento"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M7 17 23 9 40 17 56 9 56 48 40 56 23 48 7 56Z"/><path d="M23 9V48M40 17V56"/><path d="M32 8c-9 0-15 7-15 15 0 12 15 25 15 25s15-13 15-25c0-8-6-15-15-15Z"/><circle cx="32" cy="23" r="5"/></svg><strong>GEOPROCESSAMENTO</strong><span>›</span></a>'''
+          # Localiza a area que contem os hotspots existentes para que a sobreposicao seja responsiva.
+          match=re.search(r'<button[^>]*class=["\\'][^"\\']*hotspot[^"\\']*hs-sin[^"\\']*["\\'][^>]*>',s,re.I)
+          if not match:
+              print('ERRO: hotspot de sinistralidade nao localizado; sem alterar HTML')
+              raise SystemExit(1)
+          # Encontra o elemento ancestral posicionado que envolve o hotspot.
+          prefix=s[:match.start()]
+          opening=list(re.finditer(r'<(?:div|section)[^>]*>',prefix,re.I))
+          if not opening:
+              raise RuntimeError('Container nao encontrado')
+          anchor=opening[-1]
+          # Inserir o novo cartao imediatamente antes do hotspot, dentro da mesma area.
+          s=s[:match.start()]+css+card+s[match.start():]
+          p.write_text(s,encoding='utf-8')
+          print('Novo cartao inserido antes do hotspot de Sinistralidade')
+          PY
+      - name: Publicar no GitHub Pages
+        run: |
+          if ! git diff --quiet -- index.html; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add index.html
+            git commit -m "Adicionar cartao Geoprocessamento na pagina inicial"
+            git push
+          fi
