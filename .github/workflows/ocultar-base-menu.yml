@@ -1,4 +1,4 @@
-name: Remover aba Base de Dados do menu
+name: Ocultar Base de Dados no painel
 on:
   push:
     paths:
@@ -7,30 +7,29 @@ on:
 permissions:
   contents: write
 jobs:
-  atualizar-menu:
+  corrigir:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Remover apenas o botao do menu publico
+      - name: Ocultar navegacao e clique da Base de Dados
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
-          button='<button onclick="show(\'base\')">Base de Dados</button>'
-          if button not in s:
-              print('Botao nao encontrado ou ja removido; nenhum dado alterado')
-          else:
-              s=s.replace(button,'')
-              p.write_text(s,encoding='utf-8')
-              print('Botao removido; dados e outras secoes preservados')
+          patterns=[r'<button\s+onclick="show\(\x27base\x27\)"[^>]*>\s*Base de Dados\s*</button>',r'<button\s+class="hotspot hs-base"[^>]*></button>']
+          for pat in patterns:
+              s,n=re.subn(pat,'',s,flags=re.I)
+              print('Ocorrencias removidas:',n)
+          p.write_text(s,encoding='utf-8')
           PY
-      - name: Publicar alteracao no mesmo link
+      - name: Publicar alteracao
         run: |
           if ! git diff --quiet -- index.html; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add index.html
-            git commit -m "Ocultar Base de Dados do menu publico"
+            git commit -m "Remover navegacao e hotspot da Base de Dados"
             git push
           fi
