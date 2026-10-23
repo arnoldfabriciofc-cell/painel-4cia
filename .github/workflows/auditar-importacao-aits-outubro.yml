@@ -1,0 +1,26 @@
+name: Auditar importacao AITs outubro
+on:
+  push:
+    paths:
+      - '.github/workflows/auditar-importacao-aits-outubro.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  auditar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspecionar estrutura atual sem modificar dados
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('index.html').read_text(encoding='utf-8')
+          print('HTML bytes',len(s))
+          for term in ['const DATA','const dados','AIT','autuacoes','localStorage','JSON.parse','2026-10-15','2026-09-30']:
+            positions=[m.start() for m in list(re.finditer(re.escape(term),s,re.I))[:3]]
+            print(term,positions)
+            for p in positions:
+              print('CONTEXT',repr(s[max(0,p-120):p+180]))
+          PY
