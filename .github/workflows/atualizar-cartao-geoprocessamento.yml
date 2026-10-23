@@ -35,20 +35,11 @@ jobs:
           </style>'''
           card='''<a class="geo-card-overlay-v1" href="#" onclick="event.preventDefault();show('geo')" aria-label="Abrir Geoprocessamento"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M7 17 23 9 40 17 56 9 56 48 40 56 23 48 7 56Z"/><path d="M23 9V48M40 17V56"/><path d="M32 8c-9 0-15 7-15 15 0 12 15 25 15 25s15-13 15-25c0-8-6-15-15-15Z"/><circle cx="32" cy="23" r="5"/></svg><strong>GEOPROCESSAMENTO</strong><span>›</span></a>'''
           # Localiza a area que contem os hotspots existentes para que a sobreposicao seja responsiva.
-          match=re.search(r'<button[^>]*class=["\\'][^"\\']*hotspot[^"\\']*hs-sin[^"\\']*["\\'][^>]*>',s,re.I)
-          if not match:
-              print('ERRO: hotspot de sinistralidade nao localizado; sem alterar HTML')
-              raise SystemExit(1)
           # Encontra o elemento ancestral posicionado que envolve o hotspot.
-          prefix=s[:match.start()]
-          opening=list(re.finditer(r'<(?:div|section)[^>]*>',prefix,re.I))
-          if not opening:
-              raise RuntimeError('Container nao encontrado')
-          anchor=opening[-1]
           # Inserir o novo cartao imediatamente antes do hotspot, dentro da mesma area.
-          s=s[:match.start()]+css+card+s[match.start():]
+          s=s.replace('</body>',css+card+'</body>',1)
           p.write_text(s,encoding='utf-8')
-          print('Novo cartao inserido antes do hotspot de Sinistralidade')
+          print('Cartao Geoprocessamento inserido no HTML')
           PY
       - name: Publicar no GitHub Pages
         run: |
