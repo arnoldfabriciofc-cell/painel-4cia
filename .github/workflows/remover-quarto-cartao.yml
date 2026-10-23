@@ -1,0 +1,66 @@
+name: Remover quarto cartao da arte inicial
+on:
+  push:
+    paths:
+      - '.github/workflows/remover-quarto-cartao.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  remover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparar editor de imagem
+        run: python3 -m pip install --quiet pillow opencv-python-headless numpy
+      - name: Remover cartao da imagem e sobreposicao
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,base64,io
+          from PIL import Image
+          import numpy as np, cv2
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          # Retirar o cartao HTML e seu CSS, sem afetar as outras secoes
+          s,n=re.subn(r'<style id="geo-card-overlay-v1">.*?</style>','',s,count=1,flags=re.S)
+          print('CSS removido:',n)
+          s,n=re.subn(r'<a class="geo-card-overlay-v1".*?</a>','',s,count=1,flags=re.S)
+          print('Cartao sobreposto removido:',n)
+          # Encontrar a imagem de fundo embutida no HTML
+          pat=re.compile(r'data:image/(png|jpeg|jpg|webp);base64,([A-Za-z0-9+/=]+)')
+          candidates=[]
+          for m in pat.finditer(s):
+              try:
+                  raw=base64.b64decode(m.group(2))
+                  im=Image.open(io.BytesIO(raw))
+                  w,h=im.size
+                  if w>=900 and h>=450 and 1.4 < w/h < 2.5:
+                      candidates.append((len(raw),m,w,h,im.copy()))
+              except Exception: pass
+          print('Imagens candidatas:',[(z[0],z[2],z[3]) for z in candidates])
+          if not candidates: raise RuntimeError('Arte original nao localizada; nenhuma mudanca publicada')
+          _,m,w,h,im=max(candidates,key=lambda z:z[0])
+          rgb=np.asarray(im.convert('RGB'))
+          # Apagar somente o quarto cartao original, mantendo os tres primeiros
+          mask=np.zeros((h,w),np.uint8)
+          x1,x2=int(w*.764),int(w*.921)
+          y1,y2=int(h*.544),int(h*.790)
+          cv2.rectangle(mask,(x1,y1),(x2,y2),255,-1)
+          clean=cv2.inpaint(cv2.cvtColor(rgb,cv2.COLOR_RGB2BGR),mask,7,cv2.INPAINT_TELEA)
+          out=Image.fromarray(cv2.cvtColor(clean,cv2.COLOR_BGR2RGB))
+          buf=io.BytesIO()
+          fmt='PNG' if m.group(1)=='png' else 'JPEG'
+          out.save(buf,format=fmt,quality=93)
+          updated='data:image/'+m.group(1)+';base64,'+base64.b64encode(buf.getvalue()).decode()
+          s=s[:m.start()]+updated+s[m.end():]
+          p.write_text(s,encoding='utf-8')
+          print('Quarto cartao removido da arte',w,h)
+          PY
+      - name: Publicar alteracao
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Remover quarto cartao da imagem inicial"
+          git push
