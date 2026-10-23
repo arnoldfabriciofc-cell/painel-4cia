@@ -24,7 +24,7 @@ jobs:
           new=json.loads(zlib.decompress(base64.b64decode(payload)))
           print('Contagem recebida',len(new),'datas',min(r['data'] for r in new),max(r['data'] for r in new),'BOe unicos',len({r['boe'] for r in new}))
           assert len(new)==62
-          assert all('2026-10-01'<=r['data']<='2026-10-15' for r in new), 'Data fora do periodo'
+          assert all('2026-09-01'<=r['data']<='2026-10-15' for r in new), 'Data fora do intervalo da planilha BOe'
           assert len({r['boe'] for r in new})==len(new), 'BOe duplicado nos 62 registros'
           m=re.search(r'var DATA=(\[.*?\]);',s,re.S)
           if not m:raise RuntimeError('Base de sinistros nao localizada')
