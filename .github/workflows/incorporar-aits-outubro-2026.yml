@@ -1,0 +1,54 @@
+name: Incorporar AITs outubro 2026 ao painel
+on:
+  push:
+    paths:
+      - '.github/workflows/incorporar-aits-outubro-2026.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Integrar registros e validar sem alterar o layout
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,re
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          new=json.loads(Path('dados/aits-outubro-2026-ate-dia-15.json').read_text(encoding='utf-8'))
+          assert len(new)==2624,(len(new),'linhas inesperadas')
+          assert sum(int(r[11]) for r in new)==4851,'quantidade inesperada'
+          assert all('2026-10-01'<=r[0]<='2026-10-15' for r in new)
+          match=re.search(r'var D=(\[\[.*?\]\]);var MONTHS=',s,re.S)
+          if not match:raise RuntimeError('Base D nao encontrada, nenhuma alteracao')
+          old=json.loads(match.group(1))
+          existing_oct=[r for r in old if '2026-10-01'<=r[0]<='2026-10-15']
+          if existing_oct:
+            if existing_oct==new:
+              print('Ja atualizado, sem modificacoes')
+              raise SystemExit(0)
+            raise RuntimeError('Outubro ja contem registros divergentes; nao sobrescrever')
+          if not old or max(r[0] for r in old)!='2026-09-30':
+            raise RuntimeError('Base anterior nao termina em 30SET26')
+          updated=old+new
+          assert len(updated)==len(old)+2624
+          payload=json.dumps(updated,ensure_ascii=False,separators=(',',':'))
+          s=s[:match.start(1)]+payload+s[match.end(1):]
+          p.write_text(s,encoding='utf-8')
+          print('Base antiga',len(old),'Base nova',len(updated),'AITs outubro',sum(int(r[11]) for r in new))
+          print('Ultima data',max(r[0] for r in updated))
+          PY
+      - name: Publicar atualizacao preservando o restante do painel
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet -- index.html; then
+            git add index.html
+            git commit -m "Atualizar autuacoes 4 Cia ate 15OUT26"
+            git push
+          fi
