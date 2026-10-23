@@ -1,0 +1,59 @@
+name: Corrigir arte principal sem quarto cartao
+on:
+  push:
+    paths:
+      - '.github/workflows/corrigir-arte-principal.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  corrigir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalar editor
+        run: python3 -m pip install --quiet pillow opencv-python-headless numpy
+      - name: Remover cartao da arte 1672x882
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re,base64,io
+          from PIL import Image
+          import numpy as np,cv2
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          pat=re.compile(r'data:image/(png|jpeg|jpg|webp);base64,([A-Za-z0-9+/=]+)')
+          targets=[]
+          for m in pat.finditer(s):
+              try:
+                  raw=base64.b64decode(m.group(2))
+                  im=Image.open(io.BytesIO(raw))
+                  if im.size==(1672,882):
+                      targets.append((m,im.copy()))
+              except Exception: pass
+          assert targets, 'Arte 1672x882 nao encontrada'
+          m,im=targets[0]
+          rgb=np.array(im.convert('RGB'))
+          h,w=rgb.shape[:2]
+          # Coordenadas do quarto bloco da arte original
+          x1,x2=int(w*.758),int(w*.865)
+          y1,y2=int(h*.645),int(h*.833)
+          mask=np.zeros((h,w),np.uint8)
+          cv2.rectangle(mask,(x1,y1),(x2,y2),255,-1)
+          # Preencher com a textura adjacente, sem tocar nos tres primeiros blocos
+          bgr=cv2.cvtColor(rgb,cv2.COLOR_RGB2BGR)
+          result=cv2.inpaint(bgr,mask,5,cv2.INPAINT_TELEA)
+          buf=io.BytesIO()
+          Image.fromarray(cv2.cvtColor(result,cv2.COLOR_BGR2RGB)).save(buf,format='PNG')
+          encoded=base64.b64encode(buf.getvalue()).decode()
+          s=s[:m.start()]+'data:image/png;base64,'+encoded+s[m.end():]
+          p.write_text(s,encoding='utf-8')
+          print('Imagem principal corrigida',im.size,'retangulo',x1,y1,x2,y2)
+          PY
+      - name: Publicar
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Remover Base de Dados da arte principal"
+          git push
