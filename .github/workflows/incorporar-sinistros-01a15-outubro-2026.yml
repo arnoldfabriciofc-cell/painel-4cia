@@ -23,12 +23,12 @@ jobs:
           payload=Path('dados/sinistros-01a15-outubro-2026-corrigidos.zlib.b64').read_text().strip()
           new=json.loads(zlib.decompress(base64.b64decode(payload)))
           print('Contagem recebida',len(new),'datas',min(r['data'] for r in new),max(r['data'] for r in new),'BOe unicos',len({r['boe'] for r in new}))
-          assert len(new)==62
+          assert len(new)==26
           byid={str(r['boe']):r for r in new}
           assert byid['504520']['rod']=='000/147',byid['504520']
           assert byid['504520']['leve']==1,byid['504520']
           assert byid['504488']['rod']=='000/340',byid['504488']
-          assert all('2026-09-01'<=r['data']<='2026-10-15' for r in new), 'Data fora do intervalo da planilha BOe'
+          assert all('2026-10-16'<=r['data']<='2026-10-22' for r in new), 'Data fora do intervalo da planilha BOe'
           assert len({r['boe'] for r in new})==len(new), 'BOe duplicado nos 62 registros'
           m=re.search(r'var DATA=(\[.*?\]);',s,re.S)
           if not m:raise RuntimeError('Base de sinistros nao localizada')
@@ -46,7 +46,7 @@ jobs:
               old.append(r)
               added+=1
           assert len({str(r['boe']) for r in old})==len(old),'BOe duplicado na base'
-          assert max(r['data'] for r in old)>='2026-10-15'
+          assert max(r['data'] for r in old)>='2026-10-22'
           s=s[:m.start(1)]+json.dumps(old,ensure_ascii=False,separators=(',',':'))+s[m.end(1):]
           p.write_text(s,encoding='utf-8')
           print('SINISTROS: recebidos',len(new),'novos',added,'corrigidos',updated,'total',len(old),'ultima data',max(r['data'] for r in old))
