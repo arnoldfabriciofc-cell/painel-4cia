@@ -1,0 +1,44 @@
+name: Restaurar arte original da pagina inicial
+on:
+  push:
+    paths:
+      - '.github/workflows/restaurar-arte-original.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  restaurar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Restaurar apenas a imagem original e retirar sobreposicao
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess,re
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          original=subprocess.check_output(['git','show','cb5626364c4262d30563e8abe9b9ee3975b9f25b:index.html']).decode('utf-8')
+          pat=re.compile(r'data:image/(?:png|jpeg|jpg|webp);base64,[A-Za-z0-9+/=]+')
+          old=list(pat.finditer(original))
+          current=list(pat.finditer(s))
+          print('Embedded images:',len(old),len(current))
+          if len(old)!=len(current): raise RuntimeError('Quantidade de imagens diferente; nao alterar')
+          for a,b in zip(reversed(current),reversed(old)):
+              s=s[:a.start()]+original[b.start():b.end()]+s[a.end():]
+          s,n=re.subn(r'<style id="geo-card-overlay-v1">.*?</style>','',s,count=1,flags=re.S)
+          s,k=re.subn(r'<a class="geo-card-overlay-v1".*?</a>','',s,count=1,flags=re.S)
+          print('Overlay removed',n,k)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Publicar restauracao
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet -- index.html; then
+            git add index.html
+            git commit -m "Restaurar qualidade original da imagem inicial"
+            git push
+          fi
