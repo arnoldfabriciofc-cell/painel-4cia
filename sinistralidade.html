@@ -104,7 +104,7 @@ function sinMergeRows(rows){
 function sinLoadSaved(){
  try{
   var raw=localStorage.getItem('P3_4CIA_SIN_BOE_V1');if(!raw)return null;
-  var o=JSON.parse(raw);if(o&&o.rows&&o.rows.length){sinMergeRows(o.rows);return o}
+  var o=JSON.parse(raw);if(o&&o.rows&&o.rows.length){/* Registros oficiais publicados prevalecem; dados locais legados nao sobrescrevem DATA. */return null}
  }catch(e){}return null
 }
 function sinSaveImported(rows,meta){
