@@ -1,0 +1,54 @@
+name: Incorporar AITs 16 a 22 outubro 2026
+on:
+  push:
+    paths:
+      - '.github/workflows/incorporar-aits-16a22-outubro-2026.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validar e integrar AITs sem substituir layout
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,re,base64,lzma
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          payload=Path('dados/aits-outubro-2026-16-a-22.lzma.b64').read_text().strip()
+          new=json.loads(lzma.decompress(base64.b64decode(payload)).decode('utf-8'))
+          assert len(new)==1095,(len(new),'agrupamentos inesperados')
+          assert sum(int(r[11]) for r in new)==1967,'quantidade inesperada'
+          assert all('2026-10-16'<=r[0]<='2026-10-22' for r in new)
+          match=re.search(r'var D=(\[\[.*?\]\]);var MONTHS=',s,re.S)
+          if not match:raise RuntimeError('Base D nao encontrada; sem alteracao')
+          old=json.loads(match.group(1))
+          existing=[r for r in old if '2026-10-16'<=r[0]<='2026-10-22']
+          if existing:
+            if existing==new:
+              print('AITs de 16 a 22 ja estao publicados; sem modificacao')
+              raise SystemExit(0)
+            raise RuntimeError('Periodo contem registros divergentes; nao sobrescrever')
+          if max(r[0] for r in old)!='2026-10-15':
+            raise RuntimeError('Base anterior nao termina em 15OUT26; nenhuma alteracao')
+          updated=old+new
+          assert len(updated)==len(old)+1095
+          assert max(r[0] for r in updated)=='2026-10-22'
+          s=s[:match.start(1)]+json.dumps(updated,ensure_ascii=False,separators=(',',':'))+s[match.end(1):]
+          p.write_text(s,encoding='utf-8')
+          print('VALIDADO: novos AITs 1967, linhas 1095, ultima data 22OUT2026')
+          PY
+      - name: Publicar index HTML
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet -- index.html; then
+            git add index.html
+            git commit -m "Atualizar autuacoes 4 Cia ate 22OUT26"
+            git push
+          fi
