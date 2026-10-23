@@ -1,0 +1,57 @@
+name: Incorporar sinistros BOe outubro 2026
+on:
+  push:
+    paths:
+      - '.github/workflows/incorporar-sinistros-01a15-outubro-2026.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Integrar sinistros por numero BOe sem duplicar
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,re,base64,zlib
+          p=Path('sinistralidade.html')
+          s=p.read_text(encoding='utf-8')
+          payload=Path('dados/sinistros-01a15-outubro-2026.zlib.b64').read_text().strip()
+          new=json.loads(zlib.decompress(base64.b64decode(payload)))
+          assert len(new)==62
+          assert all('2026-10-01'<=r['data']<='2026-10-15' for r in new)
+          assert len({r['boe'] for r in new})==len(new)
+          m=re.search(r'var DATA=(\[.*?\]);',s,re.S)
+          if not m:raise RuntimeError('Base de sinistros nao localizada')
+          old=json.loads(m.group(1))
+          pos={str(r['boe']):i for i,r in enumerate(old)}
+          added=updated=0
+          for r in new:
+            k=str(r['boe'])
+            if k in pos:
+              if old[pos[k]]!=r:
+                old[pos[k]]=r
+                updated+=1
+            else:
+              pos[k]=len(old)
+              old.append(r)
+              added+=1
+          assert len({str(r['boe']) for r in old})==len(old),'BOe duplicado na base'
+          assert max(r['data'] for r in old)>='2026-10-15'
+          s=s[:m.start(1)]+json.dumps(old,ensure_ascii=False,separators=(',',':'))+s[m.end(1):]
+          p.write_text(s,encoding='utf-8')
+          print('SINISTROS: recebidos',len(new),'novos',added,'corrigidos',updated,'total',len(old),'ultima data',max(r['data'] for r in old))
+          PY
+      - name: Publicar sinistralidade
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet -- sinistralidade.html; then
+            git add sinistralidade.html
+            git commit -m "Atualizar sinistralidade ate 15OUT26"
+            git push
+          fi
