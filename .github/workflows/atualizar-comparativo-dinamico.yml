@@ -21,11 +21,11 @@ jobs:
           start=s.index('function initComp(){')
           end=s.index('function compPass(r)',start)
           new="""function compLastDate(){var last='2026-01-01';for(var i=0;i<D.length;i++){var d=D[i][0];if(d.slice(0,4)==='2026'&&d>last)last=d}return last}
-function compMonths(){return Math.max(1,Number(compLastDate().slice(5,7)))}
-function initComp(){var s=E('cmes');s.innerHTML='<option value="ACUM">JAN–'+MONTHS[compMonths()-1]+' acumulado</option>';for(var i=0;i<compMonths();i++)s.innerHTML+='<option value="'+MONTHS[i]+'">'+MONTHS[i]+'</option>';fill('cbat',uniq(5));fill('ccia',uniq(6));fill('cpel',uniq(7),function(v){return v==='NÃO INFORMADO'?v:v+'º Pel'});fill('cpol',uniq(4));s.onchange=compPreset;E('cdi').onchange=compCustom;E('cdf').onchange=compCustom;var cids=['cbat','ccia','cpel','cpol'];for(var j=0;j<cids.length;j++)E(cids[j]).onchange=calcComp;compPreset()}
-function compPreset(){var m=E('cmes').value;if(m==='ACUM'){E('cdi').value='2026-01-01';E('cdf').value=compLastDate()}else{var n=MONTHS.indexOf(m)+1,last=new Date(2026,n,0).getDate(),dateEnd='2026-'+String(n).padStart(2,'0')+'-'+String(last).padStart(2,'0');E('cdi').value='2026-'+String(n).padStart(2,'0')+'-01';E('cdf').value=dateEnd>compLastDate()?compLastDate():dateEnd}calcComp()}
-function compCustom(){E('cmes').value='ACUM';calcComp()}
-"""
+          function compMonths(){return Math.max(1,Number(compLastDate().slice(5,7)))}
+          function initComp(){var s=E('cmes');s.innerHTML='<option value="ACUM">JAN–'+MONTHS[compMonths()-1]+' acumulado</option>';for(var i=0;i<compMonths();i++)s.innerHTML+='<option value="'+MONTHS[i]+'">'+MONTHS[i]+'</option>';fill('cbat',uniq(5));fill('ccia',uniq(6));fill('cpel',uniq(7),function(v){return v==='NÃO INFORMADO'?v:v+'º Pel'});fill('cpol',uniq(4));s.onchange=compPreset;E('cdi').onchange=compCustom;E('cdf').onchange=compCustom;var cids=['cbat','ccia','cpel','cpol'];for(var j=0;j<cids.length;j++)E(cids[j]).onchange=calcComp;compPreset()}
+          function compPreset(){var m=E('cmes').value;if(m==='ACUM'){E('cdi').value='2026-01-01';E('cdf').value=compLastDate()}else{var n=MONTHS.indexOf(m)+1,last=new Date(2026,n,0).getDate(),dateEnd='2026-'+String(n).padStart(2,'0')+'-'+String(last).padStart(2,'0');E('cdi').value='2026-'+String(n).padStart(2,'0')+'-01';E('cdf').value=dateEnd>compLastDate()?compLastDate():dateEnd}calcComp()}
+          function compCustom(){E('cmes').value='ACUM';calcComp()}
+          """
           s=s[:start]+new+s[end:]
           a=s.index('function calcComp(){')
           b=s.index('window.onload=init;',a)
